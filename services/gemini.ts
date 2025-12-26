@@ -2,7 +2,7 @@
 import { GoogleGenerativeAI } from "@google/genai";
 
 // PASTE YOUR GEMINI KEY DIRECTLY INSIDE THE QUOTES BELOW
-const API_KEY = "AIzaSyDhUXUYkQB3BdNCNrnRAC-kt636hYcwiOc"; 
+const API_KEY = "AIzaSyDBHacCqUUsakpgezRJ9S5Z-eKN0lnSYaM"; 
 
 const genAI = new GoogleGenerativeAI(API_KEY);
 
