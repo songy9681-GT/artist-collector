@@ -23,11 +23,10 @@ const SUGGESTED_STYLES = [
   "Street Art", "Ukiyo-e", "Expressionism", "Futurism"
 ];
 
-// === 🚫 BLACKLIST: Tags to be banned ===
+// === 🚫 BLACKLIST ===
 const BAD_TAGS = [
   "ARTIST", "VARIOUS", "REAL-TIME", "LIVE DISCOVERY", "SEARCH RESULT", 
-  "GOOGLE", "IMAGES", "UNKNOWN", "N/A", "UNDEFINED", "PROFILE", "BIOGRAPHY",
-  "STOCK PHOTO", "VECTOR", "ILLUSTRATION"
+  "GOOGLE", "IMAGES", "UNKNOWN", "N/A", "UNDEFINED", "PROFILE", "BIOGRAPHY"
 ];
 
 const TRANSLATIONS = {
@@ -146,6 +145,7 @@ const App: React.FC = () => {
 
   const t = TRANSLATIONS[language];
 
+  // ... (Effects for Online/Offline/Storage/Auth same as before) ...
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
     const handleOffline = () => setIsOnline(false);
@@ -160,10 +160,8 @@ const App: React.FC = () => {
   useEffect(() => {
     const savedFavs = localStorage.getItem('artist_favorites');
     if (savedFavs) setFavorites(JSON.parse(savedFavs));
-    
     const savedCats = localStorage.getItem('artist_categories');
     if (savedCats) setCategories(JSON.parse(savedCats));
-
     const savedRegistry = localStorage.getItem('artist_registry');
     if (savedRegistry) setArtistRegistry(JSON.parse(savedRegistry));
   }, []);
@@ -181,11 +179,7 @@ const App: React.FC = () => {
              setArtistRegistry(prev => ({...prev, ...cloudData.registry}));
           }
         } else {
-          syncUserData(currentUser.uid, {
-             categories,
-             favorites,
-             registry: artistRegistry 
-          });
+          syncUserData(currentUser.uid, { categories, favorites, registry: artistRegistry });
         }
       }
     });
@@ -243,44 +237,48 @@ const App: React.FC = () => {
     setIsLoadingChat(false);
   };
 
-  // === 🧹 IMPROVED TAG CLEANING LOGIC ===
+  // === 🚀 UPGRADED TAG LOGIC ===
   const constructArtist = async (query: string, searchResult: any): Promise<Artist> => {
     const artworkTitles = searchResult.artworks.map((a: Artwork) => a.title);
     
-    // 1. Get raw data from Gemini
+    // 1. Get raw data from Gemini (Now includes Materials, Themes, Movements)
     const enriched = await enrichArtistProfile(query, searchResult.snippet, artworkTitles);
     
-    // 2. Gather all potential tags
+    // 2. Gather tags from ALL categories
     let rawTags: string[] = [];
-    if (enriched && (enriched.genreTags?.length || enriched.styleTags?.length)) {
-        rawTags = [...(enriched.genreTags || []), ...(enriched.styleTags || [])];
+    if (enriched) {
+        // Combine Movements, Materials, and Themes
+        rawTags = [
+            ...(enriched.movements || []), 
+            ...(enriched.materials || []), 
+            ...(enriched.themes || [])
+        ];
+        
+        // Fallback to genreTags/styleTags if old Gemini response format
+        if (rawTags.length === 0) {
+            rawTags = [...(enriched.genreTags || []), ...(enriched.styleTags || [])];
+        }
     } else {
-        // Fallback only if Gemini completely fails
         rawTags = ["Modern Art"]; 
     }
 
-    // 3. 🛡️ STRICT FILTER: The "Bouncer" Logic
-    const cleanTags = rawTags.filter(tag => {
+    // 3. Strict Filter (Blacklist + Duplicates)
+    const uniqueTags = Array.from(new Set(rawTags)); // Remove duplicates first
+    const cleanTags = uniqueTags.filter(tag => {
         const upperTag = tag.toUpperCase().trim();
         const upperQuery = query.toUpperCase().trim();
 
-        // Rule A: Remove if in Blacklist
         if (BAD_TAGS.includes(upperTag)) return false;
-
-        // Rule B: Remove if it's the Artist's Name (e.g., "Dali" in "Salvador Dali")
-        // Don't show "DALI" as a style for Dali.
         if (upperTag === upperQuery) return false;
         if (upperQuery.includes(upperTag) && upperTag.length > 3) return false; 
-        
-        // Rule C: Remove generic junk
         if (upperTag.includes("WIKIPEDIA")) return false;
 
         return true;
     });
 
-    // 4. Final safety net
     const finalTags = cleanTags.length > 0 ? cleanTags : ["Visual Art"];
 
+    // 4. Merge Metadata
     const mergedArtworks = searchResult.artworks.map((art: Artwork, index: number) => {
       if (enriched?.artworksMetadata && enriched.artworksMetadata[index]) {
         return {
@@ -304,7 +302,7 @@ const App: React.FC = () => {
         cn: enriched?.introCN || searchResult.intro.cn
       },
       artworks: mergedArtworks,
-      style: finalTags.slice(0, 6), // Use our cleaned tags!
+      style: finalTags.slice(0, 10), // Increased limit to 10 tags
       media: enriched?.mediaTags || ["Various"],
       links: searchResult.links,
       visualElements: enriched?.visualElements || ["Vibrant Colors", "Bold Outlines"],
@@ -316,6 +314,7 @@ const App: React.FC = () => {
     };
   };
 
+  // ... (Rest of functions: triggerSearch, addCategory, etc. remain the same) ...
   const triggerSearch = async (q: string) => {
     if (!isOnline) {
       alert("You are offline. Only your collection is available.");
