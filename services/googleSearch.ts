@@ -6,7 +6,7 @@
 
 import { Artwork } from '../types';
 
-const GOOGLE_API_KEY = 'AIzaSyDhUXUYkQB3BdNCNrnRAC-kt636hYcwiOc'; 
+const GOOGLE_API_KEY = 'AIzaSyDBHacCqUUsakpgezRJ9S5Z-eKN0lnSYaM'; 
 const GOOGLE_CX_ID = 'b0ef202adaed0406e';
 
 export interface SearchResult {
