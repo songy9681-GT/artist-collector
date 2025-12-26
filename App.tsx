@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Artist, CollectionItem, View, Category, Artwork } from './types';
 import { Box, Button, DrawerTab, IconButton, Tag } from './components/MemphisUI';
@@ -244,12 +243,26 @@ const App: React.FC = () => {
     setIsLoadingChat(false);
   };
 
+  // === KEY FIX: IMPROVED ARTIST CONSTRUCTION ===
   const constructArtist = async (query: string, searchResult: any): Promise<Artist> => {
-    // Pass the titles from Google Search to Gemini to get better metadata (Year, Media)
+    // 1. Get titles for better context
     const artworkTitles = searchResult.artworks.map((a: Artwork) => a.title);
+    
+    // 2. Ask Gemini for the REAL details
     const enriched = await enrichArtistProfile(query, searchResult.snippet, artworkTitles);
     
-    // Merge Gemini Metadata with Google Search URLs
+    // 3. Smart Tag Logic: Prioritize Gemini, Clean up Google Junk
+    let smartTags: string[] = [];
+    
+    if (enriched && (enriched.genreTags?.length || enriched.styleTags?.length)) {
+        // If Gemini works, combine its tags
+        smartTags = [...(enriched.genreTags || []), ...(enriched.styleTags || [])];
+    } else {
+        // If Gemini fails, fallback to the query itself (better than "REAL-TIME")
+        smartTags = [query, "Artist"]; 
+    }
+
+    // 4. Merge Metadata
     const mergedArtworks = searchResult.artworks.map((art: Artwork, index: number) => {
       if (enriched?.artworksMetadata && enriched.artworksMetadata[index]) {
         return {
@@ -273,8 +286,8 @@ const App: React.FC = () => {
         cn: enriched?.introCN || searchResult.intro.cn
       },
       artworks: mergedArtworks,
-      style: enriched ? [...new Set([...enriched.genreTags, ...enriched.styleTags, ...enriched.topics])] : searchResult.tags,
-      media: enriched ? enriched.mediaTags : ["Various"],
+      style: smartTags.slice(0, 6), // Limit to 6 tags max
+      media: enriched?.mediaTags || ["Various"],
       links: searchResult.links,
       visualElements: enriched?.visualElements || ["Vibrant Colors", "Bold Outlines"],
       culturalBackground: { en: searchResult.snippet, cn: "实时数据获取中" },
@@ -601,24 +614,24 @@ const App: React.FC = () => {
            })()}
            
            <div className="space-y-4">
-              {getDrawerItems(activeDrawer).map((a: any) => {
-                const name = a.name[language] || a.name.en;
-                return (
-                  <div 
-                    key={a.id} 
-                    className="p-3 border-[3px] border-black bg-[#F0F0F0] font-bold text-xs hover:bg-black hover:text-white cursor-pointer transition-all shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:shadow-none flex justify-between group"
-                    onClick={() => { 
-                      setSearchQuery(name); 
-                      triggerSearch(name); 
-                      setActiveDrawer(null); 
-                    }}
-                  >
-                    {name}
-                    <span className="opacity-0 group-hover:opacity-100 transition-opacity">→</span>
-                  </div>
-                );
-              })}
-              {getDrawerItems(activeDrawer).length === 0 && <p className="text-xs italic opacity-50">{t.emptyArchive}</p>}
+             {getDrawerItems(activeDrawer).map((a: any) => {
+               const name = a.name[language] || a.name.en;
+               return (
+                 <div 
+                   key={a.id} 
+                   className="p-3 border-[3px] border-black bg-[#F0F0F0] font-bold text-xs hover:bg-black hover:text-white cursor-pointer transition-all shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:shadow-none flex justify-between group"
+                   onClick={() => { 
+                     setSearchQuery(name); 
+                     triggerSearch(name); 
+                     setActiveDrawer(null); 
+                   }}
+                 >
+                   {name}
+                   <span className="opacity-0 group-hover:opacity-100 transition-opacity">→</span>
+                 </div>
+               );
+             })}
+             {getDrawerItems(activeDrawer).length === 0 && <p className="text-xs italic opacity-50">{t.emptyArchive}</p>}
            </div>
         </div>
       )}
@@ -668,13 +681,13 @@ const App: React.FC = () => {
               <div className="flex flex-col items-center">
                 <Box className="w-full max-w-4xl p-0 overflow-hidden flex flex-col md:flex-row mb-10" color="bg-[#FFDE59]">
                    <div className="md:w-1/3 h-64 md:h-auto">
-                      <img src={dailyRec.artworks[0].url} className="w-full h-full object-cover border-b-[3px] md:border-b-0 md:border-r-[3px] border-black" alt="daily" />
+                     <img src={dailyRec.artworks[0].url} className="w-full h-full object-cover border-b-[3px] md:border-b-0 md:border-r-[3px] border-black" alt="daily" />
                    </div>
                    <div className="flex-1 p-8 flex flex-col justify-center">
-                      <span className="text-[10px] font-black uppercase bg-black text-white px-2 py-1 inline-block mb-4 self-start">{t.dailyRec}</span>
-                      <h2 className="text-4xl font-black uppercase mb-2">{dailyRec.name[language]}</h2>
-                      <p className="font-bold text-sm mb-6 line-clamp-3">{dailyRec.intro[language]}</p>
-                      <Button onClick={() => triggerSearch(dailyRec.name[language])} className="self-start">{t.explore}</Button>
+                     <span className="text-[10px] font-black uppercase bg-black text-white px-2 py-1 inline-block mb-4 self-start">{t.dailyRec}</span>
+                     <h2 className="text-4xl font-black uppercase mb-2">{dailyRec.name[language]}</h2>
+                     <p className="font-bold text-sm mb-6 line-clamp-3">{dailyRec.intro[language]}</p>
+                     <Button onClick={() => triggerSearch(dailyRec.name[language])} className="self-start">{t.explore}</Button>
                    </div>
                 </Box>
               </div>
