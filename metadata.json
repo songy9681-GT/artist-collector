@@ -1,0 +1,7 @@
+{
+  "name": "Artist Collector (Memphis Edition)",
+  "description": "A vibrant, Memphis-style tool for discovering, collecting, and comparing artists, powered by Gemini AI.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
