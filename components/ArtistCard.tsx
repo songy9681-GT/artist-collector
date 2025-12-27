@@ -23,15 +23,14 @@ export const ArtistCard: React.FC<ArtistCardProps> = ({
   language, 
   resourcesLabel 
 }) => {
-  // New States for Interaction
   const [isBioExpanded, setIsBioExpanded] = useState(false);
   const [activeTag, setActiveTag] = useState<string | null>(null);
 
-  // Close tag menu when clicking outside
+  // Close menu on outside click
   React.useEffect(() => {
-    const handleClickOutside = () => setActiveTag(null);
-    window.addEventListener('click', handleClickOutside);
-    return () => window.removeEventListener('click', handleClickOutside);
+    const closeMenu = () => setActiveTag(null);
+    window.addEventListener('click', closeMenu);
+    return () => window.removeEventListener('click', closeMenu);
   }, []);
 
   return (
@@ -51,47 +50,68 @@ export const ArtistCard: React.FC<ArtistCardProps> = ({
 
       <div className="flex-1 overflow-y-auto bg-white">
         
-        {/* Bio Section - Click to Expand */}
+        {/* Bio Section */}
         <div 
             className="p-6 bg-[#F0F0F0] border-b-[4px] border-black cursor-pointer group hover:bg-gray-200 transition-colors"
-            onClick={() => setIsBioExpanded(!isBioExpanded)}
+            onClick={(e) => {
+                e.stopPropagation(); // Stop bubble up
+                setIsBioExpanded(!isBioExpanded);
+            }}
         >
           <div className="flex justify-between items-center mb-2">
              <span className="text-xs font-black uppercase bg-black text-white px-2 py-1">Biography</span>
-             <span className="text-[10px] font-bold uppercase opacity-50 group-hover:opacity-100">{isBioExpanded ? "Collapse ▲" : "Read More ▼"}</span>
+             <div className="flex items-center gap-1">
+                 <span className="text-[10px] font-bold uppercase opacity-50 group-hover:opacity-100 transition-opacity">
+                    {isBioExpanded ? "COLLAPSE" : "READ FULL"}
+                 </span>
+                 <span className="text-xs">{isBioExpanded ? "▲" : "▼"}</span>
+             </div>
           </div>
-          <p className={`text-sm font-bold leading-relaxed border-l-[4px] border-[#FF1694] pl-4 ${isBioExpanded ? '' : 'line-clamp-3'}`}>
+          <p className={`text-sm font-bold leading-relaxed border-l-[4px] border-[#FF1694] pl-4 transition-all duration-300 ${isBioExpanded ? '' : 'line-clamp-3'}`}>
             {artist.intro[language]}
           </p>
         </div>
           
-        {/* Tags Section - Click for Menu */}
+        {/* Tags Section */}
         <div className="p-6 border-b-[4px] border-black">
             <span className="text-xs font-black uppercase bg-[#5454FF] text-white px-2 py-1 mb-3 inline-block">Keywords & Styles</span>
             <div className="flex flex-wrap gap-2">
               {artist.style.map(tag => (
-                <div key={tag} className="relative" onClick={(e) => e.stopPropagation()}>
-                    <Tag 
-                        label={tag} 
-                        onClick={() => setActiveTag(activeTag === tag ? null : tag)} 
-                        color={activeTag === tag ? "bg-black text-white" : "bg-white"} 
-                    />
+                <div key={tag} className="relative inline-block">
+                    <div onClick={(e) => {
+                        e.stopPropagation();
+                        setActiveTag(activeTag === tag ? null : tag);
+                    }}>
+                        <Tag 
+                            label={tag} 
+                            onClick={() => {}} // Handle click in parent div
+                            color={activeTag === tag ? "bg-black text-white" : "bg-white"} 
+                        />
+                    </div>
                     
-                    {/* The Pop-up Menu */}
+                    {/* Pop-up Menu */}
                     {activeTag === tag && (
                         <div className="absolute bottom-full left-0 mb-2 w-48 bg-white border-[3px] border-black shadow-[4px_4px_0_0_rgba(0,0,0,1)] z-50 flex flex-col p-1 animate-item-bouncy">
                             <button 
-                                onClick={() => onTagClick(tag)}
-                                className="text-left px-3 py-2 font-bold text-xs hover:bg-[#FFDE59] border-b border-black uppercase"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    onTagClick(tag);
+                                    setActiveTag(null);
+                                }}
+                                className="text-left px-3 py-3 font-bold text-xs hover:bg-[#FFDE59] border-b-[2px] border-black uppercase flex items-center gap-2"
                             >
-                                🔍 Search "{tag}"
+                                <span>🔍</span> Search this
                             </button>
                             {onCreateDrawer && (
                                 <button 
-                                    onClick={() => onCreateDrawer(tag)}
-                                    className="text-left px-3 py-2 font-bold text-xs hover:bg-[#FF1694] hover:text-white uppercase"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        onCreateDrawer(tag);
+                                        setActiveTag(null);
+                                    }}
+                                    className="text-left px-3 py-3 font-bold text-xs hover:bg-[#FF1694] hover:text-white uppercase flex items-center gap-2"
                                 >
-                                    + Create Drawer
+                                    <span>+</span> Create Drawer
                                 </button>
                             )}
                         </div>
