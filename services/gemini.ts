@@ -1,14 +1,16 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 // ===========================================
-// 🔑 PASTE YOUR KEY HERE
+// 🔑 您的新项目 Key (来自 "New house")
+// (为了排除 Vercel 环境变量延迟，暂时直接写在这里，调试通了再改回去)
 // ===========================================
 const API_KEY = "AIzaSyBhVimwoZEjKGszfA1PgWhhwi7sVyDW51g"; 
 // ===========================================
-console.log("🔑 当前使用的 AI Key 是:", API_KEY);
 
 const genAI = new GoogleGenerativeAI(API_KEY);
-const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+// 🚨 关键改动：改用 gemini-pro (老版本模型)，它在英国比 1.5-flash 更容易调通
+const model = genAI.getGenerativeModel({ model: "gemini-pro" });
 
 export async function askGemini(message: string) {
   try {
@@ -17,31 +19,33 @@ export async function askGemini(message: string) {
     return response.text();
   } catch (error) {
     console.error("Gemini Chat Error:", error);
-    return "The AI Historian is currently offline.";
+    return "Thinking...";
   }
 }
 
 export async function enrichArtistProfile(artistName: string, snippet: string, artworkTitles: string[]) {
   try {
     const prompt = `
-      You are an art database. Analyze the artist "${artistName}".
+      Act as an art expert. Analyze the artist "${artistName}".
       Context: ${snippet}
       Artworks: ${artworkTitles.join(", ")}.
       
-      Return a STRICT JSON object with this exact structure:
+      You must return ONLY a valid JSON object. Do not include markdown formatting (like \`\`\`json).
+      
+      JSON Structure:
       {
         "nameCN": "Artist Name in Chinese",
-        "introEN": "Write a detailed 3-sentence biography in English. Do not use truncated sentences.",
-        "introCN": "Write a detailed 3-sentence biography in Chinese.",
-        "movements": ["Movement1", "Movement2"],
-        "materials": ["Material1", "Material2"],
-        "themes": ["Theme1", "Theme2"],
+        "introEN": "Write a 3-sentence biography in English.",
+        "introCN": "Write a 3-sentence biography in Chinese.",
+        "movements": ["Movement 1", "Movement 2"],
+        "materials": ["Material 1", "Material 2"],
+        "themes": ["Theme 1", "Theme 2"],
         "techniquesEN": "Main technique (English)",
         "techniquesCN": "Main technique (Chinese)",
         "artworksMetadata": [
-           {"title": "Correct Title 1", "year": "19XX", "media": "Oil on Canvas"},
-           {"title": "Correct Title 2", "year": "19XX", "media": "Medium"},
-           {"title": "Correct Title 3", "year": "19XX", "media": "Medium"}
+           {"title": "${artworkTitles[0] || 'Artwork 1'}", "year": "Year", "media": "Medium"},
+           {"title": "${artworkTitles[1] || 'Artwork 2'}", "year": "Year", "media": "Medium"},
+           {"title": "${artworkTitles[2] || 'Artwork 3'}", "year": "Year", "media": "Medium"}
         ]
       }
     `;
@@ -49,20 +53,21 @@ export async function enrichArtistProfile(artistName: string, snippet: string, a
     const result = await model.generateContent(prompt);
     const text = result.response.text();
     
-    // 🛠️ ROBUST PARSING LOGIC
-    // Find the first "{" and the last "}" to ignore any extra text the AI might add
-    const firstBrace = text.indexOf('{');
-    const lastBrace = text.lastIndexOf('}');
+    // 🧹 强力清洗逻辑：防止 AI 虽然返回了 JSON 但加了 markdown 符号
+    const jsonString = text.replace(/```json/g, '').replace(/```/g, '').trim();
+    
+    const firstBrace = jsonString.indexOf('{');
+    const lastBrace = jsonString.lastIndexOf('}');
     
     if (firstBrace === -1 || lastBrace === -1) {
         throw new Error("No JSON found in response");
     }
 
-    const jsonString = text.substring(firstBrace, lastBrace + 1);
-    return JSON.parse(jsonString);
+    const cleanJson = jsonString.substring(firstBrace, lastBrace + 1);
+    return JSON.parse(cleanJson);
 
   } catch (error) {
     console.error("Gemini Enrich Error:", error);
-    return null; // This triggers the "Modern Art" fallback if it fails
+    return null;
   }
 }
