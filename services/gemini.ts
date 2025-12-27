@@ -3,7 +3,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 // ===========================================
 // 🔑 PASTE YOUR KEY HERE
 // ===========================================
-const API_KEY = import.meta.env.VITE_GEMINI_API_KEY; 
+const API_KEY = "AIzaSyBhVimwoZEjKGszfA1PgWhhwi7sVyDW51g"; 
 // ===========================================
 
 const genAI = new GoogleGenerativeAI(API_KEY);
