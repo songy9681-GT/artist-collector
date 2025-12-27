@@ -5,6 +5,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 // ===========================================
 const API_KEY = "AIzaSyBhVimwoZEjKGszfA1PgWhhwi7sVyDW51g"; 
 // ===========================================
+console.log("🔑 当前使用的 AI Key 是:", API_KEY);
 
 const genAI = new GoogleGenerativeAI(API_KEY);
 const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
