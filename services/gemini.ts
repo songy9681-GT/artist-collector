@@ -22,35 +22,46 @@ export async function askGemini(message: string) {
 
 export async function enrichArtistProfile(artistName: string, snippet: string, artworkTitles: string[]) {
   try {
-    // UPDATED PROMPT: Requesting specific tag categories (Materials, Themes)
     const prompt = `
-      Analyze the artist "${artistName}". Context: ${snippet}. Artworks: ${artworkTitles.join(", ")}.
+      You are an art database. Analyze the artist "${artistName}".
+      Context: ${snippet}
+      Artworks: ${artworkTitles.join(", ")}.
       
-      Return a STRICT JSON object with no markdown formatting:
+      Return a STRICT JSON object with this exact structure:
       {
-        "nameCN": "Chinese Name",
-        "introEN": "2-sentence bio in English",
-        "introCN": "2-sentence bio in Chinese",
+        "nameCN": "Artist Name in Chinese",
+        "introEN": "Write a detailed 3-sentence biography in English. Do not use truncated sentences.",
+        "introCN": "Write a detailed 3-sentence biography in Chinese.",
         "movements": ["Movement1", "Movement2"],
-        "materials": ["Material1 (e.g. Oil)", "Material2 (e.g. Acrylic)"],
-        "themes": ["Keyword1", "Keyword2", "Topic1"],
+        "materials": ["Material1", "Material2"],
+        "themes": ["Theme1", "Theme2"],
         "techniquesEN": "Main technique (English)",
         "techniquesCN": "Main technique (Chinese)",
         "artworksMetadata": [
-          {"title": "${artworkTitles[0] || 'Art 1'}", "year": "Year", "media": "Medium"},
-          {"title": "${artworkTitles[1] || 'Art 2'}", "year": "Year", "media": "Medium"},
-          {"title": "${artworkTitles[2] || 'Art 3'}", "year": "Year", "media": "Medium"}
+           {"title": "Correct Title 1", "year": "19XX", "media": "Oil on Canvas"},
+           {"title": "Correct Title 2", "year": "19XX", "media": "Medium"},
+           {"title": "Correct Title 3", "year": "19XX", "media": "Medium"}
         ]
       }
     `;
 
     const result = await model.generateContent(prompt);
     const text = result.response.text();
-    const jsonString = text.replace(/```json|```/g, "").trim();
+    
+    // 🛠️ ROBUST PARSING LOGIC
+    // Find the first "{" and the last "}" to ignore any extra text the AI might add
+    const firstBrace = text.indexOf('{');
+    const lastBrace = text.lastIndexOf('}');
+    
+    if (firstBrace === -1 || lastBrace === -1) {
+        throw new Error("No JSON found in response");
+    }
+
+    const jsonString = text.substring(firstBrace, lastBrace + 1);
     return JSON.parse(jsonString);
 
   } catch (error) {
     console.error("Gemini Enrich Error:", error);
-    return null;
+    return null; // This triggers the "Modern Art" fallback if it fails
   }
 }
