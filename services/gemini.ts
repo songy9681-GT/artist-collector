@@ -7,7 +7,7 @@ const API_KEY = "AIzaSyDBHacCqUUsakpgezRJ9S5Z-eKN0lnSYaM";
 // ===========================================
 
 const genAI = new GoogleGenerativeAI(API_KEY);
-const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
 export async function askGemini(message: string) {
   try {
