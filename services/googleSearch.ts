@@ -6,8 +6,8 @@
 
 import { Artwork } from '../types';
 
-const GOOGLE_API_KEY = 'AIzaSyDBHacCqUUsakpgezRJ9S5Z-eKN0lnSYaM'; 
-const GOOGLE_CX_ID = 'b0ef202adaed0406e';
+const GOOGLE_API_KEY = import.meta.env.VITE_GOOGLE_API_KEY; 
+const GOOGLE_CX_ID = import.meta.env.VITE_GOOGLE_CX_ID;
 
 export interface SearchResult {
   id: string;
