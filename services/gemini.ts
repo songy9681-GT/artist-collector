@@ -2,15 +2,14 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 
 // ===========================================
 // 🔑 您的新项目 Key (来自 "New house")
-// (为了排除 Vercel 环境变量延迟，暂时直接写在这里，调试通了再改回去)
 // ===========================================
 const API_KEY = "AIzaSyBhVimwoZEjKGszfA1PgWhhwi7sVyDW51g"; 
 // ===========================================
 
 const genAI = new GoogleGenerativeAI(API_KEY);
 
-// 🚨 关键改动：改用 gemini-pro (老版本模型)，它在英国比 1.5-flash 更容易调通
-const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+// 🚨 改回 1.5-flash！既然您已经绑了卡，这个模型现在一定能用了
+const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
 export async function askGemini(message: string) {
   try {
@@ -30,7 +29,7 @@ export async function enrichArtistProfile(artistName: string, snippet: string, a
       Context: ${snippet}
       Artworks: ${artworkTitles.join(", ")}.
       
-      You must return ONLY a valid JSON object. Do not include markdown formatting (like \`\`\`json).
+      You must return ONLY a valid JSON object. Do not include markdown formatting.
       
       JSON Structure:
       {
@@ -53,7 +52,7 @@ export async function enrichArtistProfile(artistName: string, snippet: string, a
     const result = await model.generateContent(prompt);
     const text = result.response.text();
     
-    // 🧹 强力清洗逻辑：防止 AI 虽然返回了 JSON 但加了 markdown 符号
+    // 🧹 清洗逻辑
     const jsonString = text.replace(/```json/g, '').replace(/```/g, '').trim();
     
     const firstBrace = jsonString.indexOf('{');
